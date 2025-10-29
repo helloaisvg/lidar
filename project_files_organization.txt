@@ -1,0 +1,184 @@
+# 激光雷达里程计项目文件整理
+
+##  项目文件分类汇总
+
+###  核心源代码文件 (src/) 
+
+| 文件名 | 大小 | 功能说明 |
+|--------|------|----------|
+| `ndt_registration.cpp` | 5.8KB | **NDT配准算法实现** - 使用PCL库实现正态分布变换配准 |
+| `gn_icp_registration.cpp` | 12.9KB | **GN-ICP配准算法实现** - 手写高斯牛顿ICP配准算法 |
+| `lidar_odometry.cpp` | 13.3KB | **里程计核心实现** - 激光雷达里程计主类 |
+| `lidar_odometry_enhanced.cpp` | 6.5KB | **增强功能实现** - 视频录制、地图保存、截图功能 |
+| `kitti_ndt_odometry.cpp` | 4.8KB | **KITTI NDT里程计** - 基于KITTI数据集的NDT里程计 |
+| `kitti_icp_odometry.cpp` | 4.8KB | **KITTI ICP里程计** - 基于KITTI数据集的ICP里程计 |
+| `kitti_enhanced_odometry.cpp` | 12.6KB | **KITTI增强里程计** - 包含视频录制和截图的完整里程计 |
+| `ros_odometry_node.cpp` | 11.3KB | **ROS节点实现** - ROS里程计节点，支持轨迹保存 |
+| `trajectory_evaluator.cpp` | 1.7KB | **轨迹评估器** - C++轨迹评估实现 |
+| `imu_integration.cpp` | 7.0KB | **IMU融合** - 惯性测量单元数据融合 |
+
+
+###  头文件 (include/lidar_odometry/)
+
+| 文件名 | 大小 | 功能说明 |
+|--------|------|----------|
+| `ndt_registration.h` | 4.0KB | **NDT配准头文件** - NDT算法类声明 |
+| `gn_icp_registration.h` | 6.9KB | **GN-ICP配准头文件** - GN-ICP算法类声明 |
+| `lidar_odometry.h` | 7.0KB | **里程计头文件** - 里程计主类声明 |
+| `ros_odometry_node.h` | 5.4KB | **ROS节点头文件** - ROS节点类声明 |
+| `trajectory_evaluator.h` | 6.8KB | **轨迹评估头文件** - 轨迹评估类声明 |
+| `imu_integration.h` | 4.6KB | **IMU融合头文件** - IMU融合类声明 |
+
+
+###  脚本文件 (scripts/) 
+
+| 文件名 | 大小 | 功能说明 |
+|--------|------|----------|
+| `direct_bag_processor.py` | 10.0KB | **Bag包处理器** - 直接处理ROS bag包生成轨迹 |
+| `show_results.py` | 5.3KB | **结果展示脚本** - 显示处理结果和统计信息 |
+| `simple_trajectory_evaluator.py` | 6.5KB | **轨迹评估脚本** - Python轨迹评估工具 |
+| `view_pointcloud.py` | 4.2KB | **点云查看器** - 可视化PCD点云文件 |
+| `evaluate_with_evo.sh` | 1.6KB | **EVO评估脚本** - 使用EVO工具评估轨迹 |
+
+
+
+###  结果文件 (results/) 
+
+#### 点云文件 (results/pointclouds/)
+| 文件名 | 大小 | 功能说明 |
+|--------|------|----------|
+| `ndt_global_map_0.pcd` | 741KB | **NDT全局地图PCD** - NDT算法生成的全局地图点云 |
+| `ndt_global_map_0.ply` | 741KB | **NDT全局地图PLY** - 转换为PLY格式的NDT地图 |
+| `gn_icp_global_map_0.pcd` | 741KB | **GN-ICP全局地图PCD** - GN-ICP算法生成的全局地图点云 |
+| `gn_icp_global_map_0.ply` | 741KB | **GN-ICP全局地图PLY** - 转换为PLY格式的GN-ICP地图 |
+
+#### 截图文件 (results/screenshots/)
+| 文件名 | 大小 | 功能说明 |
+|--------|------|----------|
+| `ndt_global_map_screenshot_0.png` | 20KB | **NDT全局地图截图** - NDT算法生成的全局地图 |
+| `gn_icp_global_map_screenshot_0.png` | 20KB | **GN-ICP全局地图截图** - GN-ICP算法生成的全局地图 |
+
+#### 视频文件 (results/videos/)
+| 文件名 | 大小 | 功能说明 |
+|--------|------|----------|
+| `ndt_odometry_video_0.mp4` | 3.1MB | **NDT里程计运行视频** - NDT算法运行过程录制 |
+| `gn_icp_odometry_video_0.mp4` | 3.1MB | **GN-ICP里程计运行视频** - GN-ICP算法运行过程录制 |
+
+#### 轨迹文件 (results/trajectories/)
+| 文件名 | 大小 | 功能说明 |
+|--------|------|----------|
+| `ndt_trajectory_0.txt` | 15KB | **NDT轨迹文件** - NDT算法生成的轨迹(TUM格式) |
+| `gn_icp_trajectory_0.txt` | 15KB | **GN-ICP轨迹文件** - GN-ICP算法生成的轨迹(TUM格式) |
+| `ndt_trajectory_kitti_0.txt` | 774B | **KITTI NDT轨迹** - 基于KITTI数据集的NDT轨迹 |
+
+#### 可视化文件 (results/visualizations/)
+| 文件名 | 大小 | 功能说明 |
+|--------|------|----------|
+| `ndt_pointcloud_visualization.png` | 3.5MB | **NDT点云可视化** - NDT点云的3D可视化图 |
+| `trajectory_visualization.png` | 596KB | **轨迹可视化** - 综合轨迹可视化图 |
+
+###  EVO评估结果 (evo_evaluation_results/)
+
+#### NDT评估结果
+| 文件名 | 大小 | 功能说明 |
+|--------|------|----------|
+| `ndt/real_evo_ndt_trajectory_trajectories.png` | 70KB | **NDT轨迹对比图** - EVO生成的轨迹对比分析 |
+| `ndt/real_evo_ndt_trajectory_xyz.png` | 57KB | **NDT XYZ坐标图** - EVO生成的XYZ坐标变化图 |
+| `ndt/real_evo_ndt_trajectory_rpy.png` | 38KB | **NDT姿态角图** - EVO生成的姿态角变化图 |
+| `ndt/real_evo_ndt_trajectory_speeds.png` | 104KB | **NDT速度分析图** - EVO生成的速度分析图 |
+| `ndt/ndt_trajectory_0_2d.png` | 124KB | **NDT 2D轨迹图** - Python生成的2D轨迹图 |
+| `ndt/ndt_trajectory_0_3d.png` | 457KB | **NDT 3D轨迹图** - Python生成的3D轨迹图 |
+| `ndt/ndt_trajectory_0_speed.png` | 264KB | **NDT速度曲线** - Python生成的速度曲线 |
+| `ndt/ndt_trajectory_0_stats.txt` | 230B | **NDT统计信息** - NDT轨迹统计信息 |
+
+#### GN-ICP评估结果
+| 文件名 | 大小 | 功能说明 |
+|--------|------|----------|
+| `gn_icp/real_evo_gn_icp_trajectory_trajectories.png` | 83KB | **GN-ICP轨迹对比图** - EVO生成的轨迹对比分析 |
+| `gn_icp/real_evo_gn_icp_trajectory_xyz.png` | 72KB | **GN-ICP XYZ坐标图** - EVO生成的XYZ坐标变化图 |
+| `gn_icp/real_evo_gn_icp_trajectory_rpy.png` | 41KB | **GN-ICP姿态角图** - EVO生成的姿态角变化图 |
+| `gn_icp/real_evo_gn_icp_trajectory_speeds.png` | 68KB | **GN-ICP速度分析图** - EVO生成的速度分析图 |
+| `gn_icp/gn_icp_trajectory_0_2d.png` | 126KB | **GN-ICP 2D轨迹图** - Python生成的2D轨迹图 |
+| `gn_icp/gn_icp_trajectory_0_3d.png` | 458KB | **GN-ICP 3D轨迹图** - Python生成的3D轨迹图 |
+| `gn_icp/gn_icp_trajectory_0_speed.png` | 266KB | **GN-ICP速度曲线** - Python生成的速度曲线 |
+| `gn_icp/gn_icp_trajectory_0_stats.txt` | 233B | **GN-ICP统计信息** - GN-ICP轨迹统计信息 |
+
+
+
+###  文档文件
+
+| 文件名 | 大小 | 功能说明 |
+|--------|------|----------|
+| `README.md` | 4.9KB | **项目说明** - 项目主要说明文档 |
+| `PROJECT_FILES_ORGANIZATION.md` | 10.5KB | **文件组织说明** - 完整的文件整理说明 |
+
+
+###  配置文件
+
+| 文件名 | 大小 | 功能说明 |
+|--------|------|----------|
+| `CMakeLists.txt` | 3.9KB | **CMake配置** - 项目编译配置文件 |
+| `package.xml` | 814B | **ROS包配置** - ROS包配置文件 |
+| `download_kitti.sh` | 1.5KB | **KITTI下载脚本** - 下载KITTI数据集脚本 |
+| `convert_pcd_to_ply.py` | 1.4KB | **格式转换脚本** - PCD转PLY格式脚本 |
+
+
+
+###  数据文件
+
+| 文件名 | 大小 | 功能说明 |
+|--------|------|----------|
+| `data.bag` | 15.5GB | **ROS Bag包** - 激光雷达数据bag包 |
+| `data_odometry_velodyne.zip` | 31.7GB | **KITTI数据集** - KITTI里程计数据集压缩包 |
+
+###  目录结构 
+
+```
+mapping/
+├── src/                          # 源代码文件 
+├── include/lidar_odometry/       # 头文件 (7个)
+├── scripts/                      # 脚本文件 (5个)
+├── results/                      # 结果文件 
+│   ├── pointclouds/             # 点云文件 (4个)
+│   ├── screenshots/            # 截图文件 (2个)
+│   ├── videos/                 # 视频文件 (2个)
+│   ├── trajectories/           # 轨迹文件 (3个)
+│   └── visualizations/         # 可视化文件 (2个)
+├── evo_evaluation_results/       # EVO评估结果
+│   ├── ndt/                     # NDT评估结果 (8个文件)
+│   └── gn_icp/                  # GN-ICP评估结果 (8个文件)
+├── kitti_data/                  # KITTI数据集
+├── build/                       # 编译输出 
+├── launch/                      # ROS启动文件
+├── config/                      # 配置文件
+├── evo_env/                     # EVO虚拟环境 
+├── data.bag                     # ROS Bag包 
+└── PROJECT_FILES_ORGANIZATION.md # 文件整理说明
+```
+
+
+#### 推荐使用方式：
+```bash
+# 1. 编译项目
+mkdir -p build && cd build && cmake .. && make -j4
+
+# 2. 运行NDT里程计
+./build/lidar_odometry/kitti_ndt_odometry ./kitti_data/data_odometry_velodyne/dataset/ 0
+
+# 3. 运行GN-ICP里程计
+./build/lidar_odometry/kitti_icp_odometry ./kitti_data/data_odometry_velodyne/dataset/ 0
+
+# 4. 运行增强版里程计
+./build/lidar_odometry/kitti_enhanced_odometry ./kitti_data/data_odometry_velodyne/dataset/ 0 ndt
+
+# 5. 处理bag包
+python3 scripts/direct_bag_processor.py ./data.bag
+
+# 6. 查看结果
+python3 scripts/show_results.py
+
+# 7. EVO评估
+bash scripts/evaluate_with_evo.sh
+```
+
+

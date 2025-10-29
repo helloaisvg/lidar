@@ -1,0 +1,9 @@
+Trajectory Statistics: ndt_trajectory_0
+==================================================
+Number of points: 200
+Total distance: 109.68 m
+Average speed: 5.51 m/s
+Duration: 19.90 s
+X range: 83.44 m
+Y range: 55.11 m
+Z range: 3.35 m

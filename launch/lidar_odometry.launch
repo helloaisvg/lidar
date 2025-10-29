@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- 激光雷达里程计启动文件 -->
+    
+    <!-- 参数 -->
+    <arg name="registration_method" default="ndt" doc="Registration method: ndt or gn_icp"/>
+    <arg name="voxel_size" default="0.1" doc="Voxel size for point cloud filtering"/>
+    <arg name="max_range" default="100.0" doc="Maximum range for point cloud filtering"/>
+    <arg name="min_range" default="1.0" doc="Minimum range for point cloud filtering"/>
+    <arg name="use_imu_prediction" default="false" doc="Use IMU prediction for initial guess"/>
+    <arg name="publish_transformed_cloud" default="false" doc="Publish transformed point cloud"/>
+    
+    <!-- 话题参数 -->
+    <arg name="pointcloud_topic" default="/velodyne_points" doc="Point cloud topic"/>
+    <arg name="imu_topic" default="/imu" doc="IMU topic"/>
+    <arg name="pose_topic" default="/lidar_pose" doc="Pose topic"/>
+    <arg name="odometry_topic" default="/lidar_odometry" doc="Odometry topic"/>
+    <arg name="path_topic" default="/lidar_path" doc="Path topic"/>
+    <arg name="transformed_cloud_topic" default="/transformed_cloud" doc="Transformed cloud topic"/>
+    
+    <!-- 坐标系参数 -->
+    <arg name="base_frame" default="base_link" doc="Base frame"/>
+    <arg name="odom_frame" default="odom" doc="Odometry frame"/>
+    <arg name="lidar_frame" default="velodyne" doc="Lidar frame"/>
+    
+    <!-- 启动激光雷达里程计节点 -->
+    <node pkg="lidar_odometry" type="ros_odometry_node" name="lidar_odometry" output="screen">
+        <!-- 配准方法 -->
+        <param name="registration_method" value="$(arg registration_method)"/>
+        
+        <!-- 处理参数 -->
+        <param name="voxel_size" value="$(arg voxel_size)"/>
+        <param name="max_range" value="$(arg max_range)"/>
+        <param name="min_range" value="$(arg min_range)"/>
+        <param name="use_imu_prediction" value="$(arg use_imu_prediction)"/>
+        <param name="publish_transformed_cloud" value="$(arg publish_transformed_cloud)"/>
+        
+        <!-- 话题参数 -->
+        <param name="pointcloud_topic" value="$(arg pointcloud_topic)"/>
+        <param name="imu_topic" value="$(arg imu_topic)"/>
+        <param name="pose_topic" value="$(arg pose_topic)"/>
+        <param name="odometry_topic" value="$(arg odometry_topic)"/>
+        <param name="path_topic" value="$(arg path_topic)"/>
+        <param name="transformed_cloud_topic" value="$(arg transformed_cloud_topic)"/>
+        
+        <!-- 坐标系参数 -->
+        <param name="base_frame" value="$(arg base_frame)"/>
+        <param name="odom_frame" value="$(arg odom_frame)"/>
+        <param name="lidar_frame" value="$(arg lidar_frame)"/>
+    </node>
+    
+    <!-- 启动RViz可视化 -->
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find lidar_odometry)/config/lidar_odometry.rviz" output="screen"/>
+    
+</launch>
