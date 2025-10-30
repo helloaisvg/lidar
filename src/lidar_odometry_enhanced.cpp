@@ -1,9 +1,11 @@
 /* 增强版里程计功能:添加视频录制和地图保存功能*/
 
 #include "lidar_odometry/lidar_odometry.h"
+#ifdef USE_OPENCV
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgcodecs/imgcodecs.hpp>
+#endif
 #include <pcl/io/pcd_io.h>
 #include <iomanip>
 #include <sstream>
@@ -81,9 +83,14 @@ bool LidarOdometry::saveGlobalMapScreenshot(const std::string& filename) const {
     return true;
 }
 
-// 带视频录制的可视化
+// 带视频录制的可视化（若未开启OpenCV，则退化为普通可视化并提示）
 void LidarOdometry::visualizeTrajectoryWithVideo(const std::string& video_filename, 
-                                                   bool show_clouds) {
+                                                 bool show_clouds) {
+#ifndef USE_OPENCV
+    std::cerr << "OpenCV not available, fallback to simple visualization (no video)." << std::endl;
+    visualizeTrajectory(show_clouds);
+    return;
+#else
     if (trajectory_.empty()) {
         std::cout << "No trajectory to visualize!" << std::endl;
         return;
@@ -100,14 +107,8 @@ void LidarOdometry::visualizeTrajectoryWithVideo(const std::string& video_filena
     int fourcc = cv::VideoWriter::fourcc('M','P','4','V');
     double fps = 30.0;
     cv::Size frame_size(1920, 1080);
-    
-    // 创建OpenCV窗口用于捕获
     bool recording = writer.open(video_filename, fourcc, fps, frame_size);
-    
-    if (!recording) {
-        std::cerr << "Warning: Failed to open video writer. Visualizing without recording." 
-                  << std::endl;
-    }
+    if (!recording) std::cerr << "Warning: video writer open failed, no recording." << std::endl;
     
     // 构建轨迹点云
     pcl::PointCloud<pcl::PointXYZ> trajectory_cloud;
@@ -173,10 +174,8 @@ void LidarOdometry::visualizeTrajectoryWithVideo(const std::string& video_filena
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     
-    if (recording) {
-        writer.release();
-        std::cout << "Video saved to: " << video_filename << std::endl;
-    }
+    if (recording) { writer.release(); std::cout << "Video saved to: " << video_filename << std::endl; }
+#endif
 }
 
 } 

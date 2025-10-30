@@ -1,6 +1,7 @@
 #include "lidar_odometry/ndt_registration.h"
 #include <pcl/console/time.h>
 #include <pcl/visualization/cloud_viewer.h>
+#include <pcl/common/common.h>
 #include <chrono>
 #include <thread>
 
@@ -104,7 +105,7 @@ void NDTRegistration::setVoxelGridFilter(double leaf_size) {
     use_voxel_filter_ = true;
 }
 
-PointCloudPtr NDTRegistration::preprocessPointCloud(const PointCloudPtr& cloud) {
+NDTRegistration::PointCloudPtr NDTRegistration::preprocessPointCloud(const NDTRegistration::PointCloudPtr& cloud) {
     PointCloudPtr filtered_cloud(new PointCloud);
     
     if (use_voxel_filter_) {
@@ -150,6 +151,61 @@ void NDTRegistration::visualizeRegistration(const PointCloudPtr& source,
         viewer->spinOnce(100);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+}
+
+void NDTRegistration::saveRegistrationScreenshot(const PointCloudPtr& source,
+                                                const PointCloudPtr& target,
+                                                const Eigen::Matrix4f& transformation,
+                                                const std::string& filename) {
+    // 变换源点云
+    PointCloudPtr transformed_source(new PointCloud);
+    pcl::transformPointCloud(*source, *transformed_source, transformation);
+    
+    // 创建可视化器
+    pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("NDT Registration Screenshot"));
+    viewer->setBackgroundColor(0, 0, 0);
+    viewer->setShowFPS(false);
+    viewer->setSize(1920, 1080);
+    
+    // 添加目标点云（绿色）
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> target_color(target, 0, 255, 0);
+    viewer->addPointCloud<pcl::PointXYZ>(target, target_color, "target_cloud");
+    
+    // 添加变换后的源点云（红色）
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> source_color(transformed_source, 255, 0, 0);
+    viewer->addPointCloud<pcl::PointXYZ>(transformed_source, source_color, "source_cloud");
+    
+    viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "target_cloud");
+    viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "source_cloud");
+    
+    viewer->addCoordinateSystem(1.0);
+    viewer->initCameraParameters();
+    
+    // 设置视角
+    pcl::PointXYZ min_pt, max_pt;
+    pcl::getMinMax3D(*target, min_pt, max_pt);
+    double center_x = (min_pt.x + max_pt.x) / 2.0;
+    double center_y = (min_pt.y + max_pt.y) / 2.0;
+    double center_z = (min_pt.z + max_pt.z) / 2.0;
+    double range = std::max({max_pt.x - min_pt.x, max_pt.y - min_pt.y, max_pt.z - min_pt.z});
+    
+    viewer->setCameraPosition(
+        center_x + range * 0.5, center_y + range * 0.5, center_z + range * 0.5,
+        center_x, center_y, center_z,
+        0, 0, 1);
+    
+    // 等待渲染完成
+    for (int i = 0; i < 10; ++i) {
+        viewer->spinOnce(100);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    
+    // 保存截图
+    viewer->saveScreenshot(filename);
+    std::cout << "配准截图已保存: " << filename << std::endl;
+    
+    // 关闭可视化器
+    viewer->close();
 }
 
 void NDTRegistration::initializeNDT() {

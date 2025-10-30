@@ -18,6 +18,7 @@
 
 #include "ndt_registration.h"
 #include "gn_icp_registration.h"
+#include "icp_registration.h"
 
 namespace lidar_odometry {
 
@@ -34,8 +35,9 @@ public:
      * @brief 配准方法枚举
      */
     enum class RegistrationMethod {
-        NDT,        // NDT配准
-        GN_ICP      // GN-ICP配准
+        NDT,        // NDT配准（PCL）
+        ICP,        // ICP配准（PCL标准）
+        GN_ICP      // GN-ICP配准（手写）
     };
 
     /**
@@ -142,6 +144,11 @@ public:
     void visualizeTrajectory(bool show_clouds = false);
 
     /**
+     * @brief 轨迹可视化并录制视频
+     */
+    void visualizeTrajectoryWithVideo(const std::string& video_filename, bool show_clouds = false);
+
+    /**
      * @brief 重置里程计
      */
     void reset();
@@ -154,10 +161,32 @@ public:
      */
     void getStatistics(int& total_frames, int& successful_frames, double& average_time) const;
 
+    /**
+     * @brief 获取全局地图点云
+     */
+    PointCloudPtr getGlobalMap() const { return global_map_; }
+
+    /**
+     * @brief 保存全局地图到PCD文件
+     */
+    bool saveGlobalMap(const std::string& filename) const;
+
+    /**
+     * @brief 保存全局地图的截图
+     */
+    bool saveGlobalMapScreenshot(const std::string& filename) const;
+
+    /**
+     * @brief 保存当前帧配准结果截图
+     * @param filename 保存的文件名
+     */
+    bool saveCurrentRegistrationScreenshot(const std::string& filename);
+
 private:
     RegistrationMethod registration_method_;  // 配准方法
     std::unique_ptr<NDTRegistration> ndt_registration_;      // NDT配准器
-    std::unique_ptr<GNICPRegistration> gn_icp_registration_; // GN-ICP配准器
+    std::unique_ptr<ICPRegistration> icp_registration_;      // ICP配准器（PCL标准）
+    std::unique_ptr<GNICPRegistration> gn_icp_registration_; // GN-ICP配准器（手写）
     
     // 点云处理参数
     double voxel_size_;          // 体素大小
@@ -167,8 +196,11 @@ private:
     // 里程计状态
     bool is_initialized_;        // 是否已初始化
     PointCloudPtr previous_cloud_;  // 前一帧点云
+    PointCloudPtr last_processed_cloud_;  // 最后一次处理后的点云（用于配准截图）
     Eigen::Matrix4d current_pose_;  // 当前位姿
+    Eigen::Matrix4f last_relative_transform_;  // 最后一次相对变换（用于配准截图）
     std::vector<TrajectoryPoint> trajectory_;  // 轨迹
+    PointCloudPtr global_map_;                 // 全局地图累计点云
     
     // 统计信息
     int total_frames_;           // 总帧数

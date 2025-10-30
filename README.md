@@ -10,6 +10,7 @@
 - **NDT配准**: 使用PCL库实现正态分布变换配准
 - **ICP配准**: 使用PCL库实现标准迭代最近点配准算法
 - **GN-ICP配准**: 手写高斯牛顿ICP配准算法
+- **可视化功能**: 支持交互式可视化配准结果和保存配准截图（显示源点云和目标点云对齐效果）
 - **代码位置**: `src/ndt_registration.cpp`, `src/icp_registration.cpp`, `src/gn_icp_registration.cpp`
 
 ### 任务2: KITTI里程计和视频录制 
@@ -17,6 +18,7 @@
 - **配准方法**: 支持NDT（PCL）、ICP（PCL标准）、GN-ICP（手写）三种方法
 - **视频录制**: 生成MP4格式的里程计运行视频（OpenCV）
 - **地图截图**: 保存全局地图PNG截图
+- **单帧配准截图**: 自动保存前3帧的配准结果截图（显示两帧点云对齐效果）
 - **可执行文件**: `build/kitti_simple`, `build/kitti_enhanced_odometry`
 - **代码位置**: `src/kitti_simple.cpp`, `src/kitti_enhanced_odometry.cpp`, `src/lidar_odometry_enhanced.cpp`
 
@@ -54,6 +56,7 @@ lidar/
 │   ├── show_results.py           # 结果展示脚本
 │   ├── simple_trajectory_evaluator.py # 轨迹评估脚本
 │   └── view_pointcloud.py       # 点云查看器
+├── registration_screenshots/     # 单帧配准截图目录（绿色=目标点云，红色=变换后源点云）
 ├── results/                      # 结果文件 
 │   ├── screenshots/            # 截图文件
 │   ├── videos/                 # 视频文件
@@ -111,6 +114,12 @@ cmake --build . -j4
 - `*_kitti_0_global_map_screenshot.png` - 地图截图
 - `*_kitti_0_odometry_video.mp4` - 里程计运行视频（仅增强版）
 
+**单帧配准截图**（生成在 `registration_screenshots/` 目录，仅增强版）：
+- `{方法}_registration_frame_{前一帧}_to_{当前帧}.png` - 单帧配准结果截图
+  - 例如：`ndt_registration_frame_0_to_1.png`（显示第0帧和第1帧的配准对齐效果）
+  - 绿色点云：目标点云（前一帧）
+  - 红色点云：变换后的源点云（当前帧）
+
 ### 3. 处理Bag包 
 ```bash
 # 处理bag包提取点云数据（支持ROS 1格式）
@@ -161,6 +170,9 @@ python3 scripts/view_pointcloud.py ndt_kitti_0_global_map.pcd
 
 # 查看生成的文件
 ls -lh ndt_kitti_0_* icp_kitti_0_* gn_icp_kitti_0_* *.tum
+
+# 查看单帧配准截图
+ls -lh registration_screenshots/*.png
 ```
 
 ##  生成的结果文件
@@ -176,10 +188,23 @@ ls -lh ndt_kitti_0_* icp_kitti_0_* gn_icp_kitti_0_* *.tum
 - `icp_kitti_0_global_map.pcd` - ICP全局地图点云
 - `gn_icp_kitti_0_global_map.pcd` - GN-ICP全局地图点云
 
-###  截图文件（项目根目录）
+###  截图文件
+
+#### 全局地图截图（项目根目录）
 - `ndt_kitti_0_global_map_screenshot.png` - NDT全局地图截图
 - `icp_kitti_0_global_map_screenshot.png` - ICP全局地图截图
 - `gn_icp_kitti_0_global_map_screenshot.png` - GN-ICP全局地图截图
+
+#### 单帧配准截图（`registration_screenshots/` 目录）
+- `ndt_registration_frame_0_to_1.png` - NDT第0帧到第1帧配准截图
+- `ndt_registration_frame_1_to_2.png` - NDT第1帧到第2帧配准截图
+- `ndt_registration_frame_2_to_3.png` - NDT第2帧到第3帧配准截图
+- `icp_registration_frame_0_to_1.png` - ICP第0帧到第1帧配准截图
+- `icp_registration_frame_1_to_2.png` - ICP第1帧到第2帧配准截图
+- `icp_registration_frame_2_to_3.png` - ICP第2帧到第3帧配准截图
+- `gn_icp_registration_frame_0_to_1.png` - GN-ICP第0帧到第1帧配准截图
+- `gn_icp_registration_frame_1_to_2.png` - GN-ICP第1帧到第2帧配准截图
+- `gn_icp_registration_frame_2_to_3.png` - GN-ICP第2帧到第3帧配准截图
 
 ###  视频文件（项目根目录，简单版不生成，仅增强版生成）
 - `ndt_kitti_0_odometry_video.mp4` - NDT里程计运行视频
@@ -216,12 +241,14 @@ ls -lh ndt_kitti_0_* icp_kitti_0_* gn_icp_kitti_0_* *.tum
 ##  主要功能
 
 1. **配准算法**: NDT（PCL）、ICP（PCL标准）和GN-ICP（手写）三种配准方法
-2. **KITTI里程计**: 基于KITTI数据集的激光雷达里程计（NDT/ICP/GN-ICP）
-3. **视频录制**: 自动录制里程计运行过程（MP4格式，增强版）
-4. **地图保存**: 保存全局地图为PCD格式和PNG截图
-5. **轨迹评估**: 使用EVO工具进行轨迹对齐和对比分析
-6. **ROS2节点**: ROS2里程计节点，支持在线处理和轨迹保存
-7. **Bag包处理**: 提取真实点云数据（轨迹使用质心估算，仅供参考）
+2. **单帧配准可视化**: 支持交互式可视化配准结果和保存配准截图（显示两帧点云对齐效果）
+3. **KITTI里程计**: 基于KITTI数据集的激光雷达里程计（NDT/ICP/GN-ICP）
+4. **视频录制**: 自动录制里程计运行过程（MP4格式，增强版）
+5. **地图保存**: 保存全局地图为PCD格式和PNG截图
+6. **单帧配准截图**: 自动保存前3帧的配准结果截图（增强版）
+7. **轨迹评估**: 使用EVO工具进行轨迹对齐和对比分析
+8. **ROS2节点**: ROS2里程计节点，支持在线处理和轨迹保存
+9. **Bag包处理**: 提取真实点云数据（轨迹使用质心估算，仅供参考）
 
 
 ##  License

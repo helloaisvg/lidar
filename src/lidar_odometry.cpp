@@ -25,6 +25,7 @@ LidarOdometry::LidarOdometry(RegistrationMethod method,
     , total_processing_time_(0.0) {
     
     initializeRegistration();
+    global_map_.reset(new PointCloud);
 }
 
 void LidarOdometry::setRegistrationMethod(RegistrationMethod method) {
@@ -36,6 +37,9 @@ void LidarOdometry::setVoxelSize(double voxel_size) {
     voxel_size_ = voxel_size;
     if (ndt_registration_) {
         ndt_registration_->setVoxelGridFilter(voxel_size_);
+    }
+    if (icp_registration_) {
+        icp_registration_->setVoxelGridFilter(voxel_size_);
     }
     if (gn_icp_registration_) {
         gn_icp_registration_->setVoxelGridFilter(voxel_size_);
@@ -89,6 +93,9 @@ bool LidarOdometry::processFrame(const PointCloudPtr& cloud, double timestamp) {
     if (registration_method_ == RegistrationMethod::NDT && ndt_registration_) {
         relative_transform = ndt_registration_->align(processed_cloud, previous_cloud_);
         registration_success = ndt_registration_->hasConverged();
+    } else if (registration_method_ == RegistrationMethod::ICP && icp_registration_) {
+        relative_transform = icp_registration_->align(processed_cloud, previous_cloud_);
+        registration_success = icp_registration_->hasConverged();
     } else if (registration_method_ == RegistrationMethod::GN_ICP && gn_icp_registration_) {
         relative_transform = gn_icp_registration_->align(processed_cloud, previous_cloud_);
         registration_success = gn_icp_registration_->hasConverged();
@@ -98,6 +105,10 @@ bool LidarOdometry::processFrame(const PointCloudPtr& cloud, double timestamp) {
         std::cerr << "Registration failed!" << std::endl;
         return false;
     }
+
+    // 保存配准信息用于截图
+    last_processed_cloud_ = processed_cloud;
+    last_relative_transform_ = relative_transform;
 
     // 更新位姿
     Eigen::Matrix4d relative_transform_d = relative_transform.cast<double>();
@@ -110,6 +121,21 @@ bool LidarOdometry::processFrame(const PointCloudPtr& cloud, double timestamp) {
 
     // 添加轨迹点
     trajectory_.emplace_back(timestamp, position, orientation);
+
+    // 累计到全局地图（每3帧一次以控制规模）
+    if (total_frames_ % 3 == 0) {
+        PointCloudPtr transformed(new PointCloud);
+        Eigen::Matrix4f pose_f = current_pose_.cast<float>();
+        pcl::transformPointCloud(*processed_cloud, *transformed, pose_f);
+        (*global_map_) += *transformed;
+        // 轻度体素降采样，防止无限增长
+        pcl::VoxelGrid<pcl::PointXYZ> vg;
+        vg.setInputCloud(global_map_);
+        vg.setLeafSize(voxel_size_ * 2.0, voxel_size_ * 2.0, voxel_size_ * 2.0);
+        PointCloudPtr tmp(new PointCloud);
+        vg.filter(*tmp);
+        global_map_.swap(tmp);
+    }
 
     // 更新前一帧点云
     previous_cloud_ = processed_cloud;
@@ -125,7 +151,8 @@ bool LidarOdometry::processFrame(const PointCloudPtr& cloud, double timestamp) {
 }
 
 bool LidarOdometry::processKITTISequence(const std::string& data_path, int sequence) {
-    std::string sequence_path = data_path + "/sequences/" + std::to_string(sequence).substr(0, 2) + "/velodyne/";
+    std::stringstream ss; ss << std::setfill('0') << std::setw(2) << sequence;
+    std::string sequence_path = data_path + "/sequences/" + ss.str() + "/velodyne/";
     
     if (!std::filesystem::exists(sequence_path)) {
         std::cerr << "Error: KITTI sequence path does not exist: " << sequence_path << std::endl;
@@ -146,12 +173,13 @@ bool LidarOdometry::processKITTISequence(const std::string& data_path, int seque
 
     std::cout << "Found " << cloud_files.size() << " point cloud files" << std::endl;
 
-    // 处理每一帧
-    for (size_t i = 0; i < cloud_files.size(); ++i) {
+    // 仅处理前10帧（调试/按需）
+    size_t max_frames = std::min<size_t>(10, cloud_files.size());
+    for (size_t i = 0; i < max_frames; ++i) {
         // 读取点云
         PointCloudPtr cloud(new PointCloud);
-        if (pcl::io::loadPCDFile(cloud_files[i], *cloud) == -1) {
-            // 尝试读取KITTI二进制格式
+        // 仅按KITTI .bin格式读取（每点4个float: x y z intensity）
+        {
             std::ifstream file(cloud_files[i], std::ios::binary);
             if (!file.is_open()) {
                 std::cerr << "Error: Cannot open file " << cloud_files[i] << std::endl;
@@ -159,18 +187,34 @@ bool LidarOdometry::processKITTISequence(const std::string& data_path, int seque
             }
 
             cloud->clear();
-            float x, y, z, intensity;
-            while (file.read(reinterpret_cast<char*>(&x), sizeof(float)) &&
-                   file.read(reinterpret_cast<char*>(&y), sizeof(float)) &&
-                   file.read(reinterpret_cast<char*>(&z), sizeof(float)) &&
-                   file.read(reinterpret_cast<char*>(&intensity), sizeof(float))) {
+            std::array<float, 4> buffer;
+            while (file.read(reinterpret_cast<char*>(buffer.data()), sizeof(float) * 4)) {
                 pcl::PointXYZ point;
-                point.x = x;
-                point.y = y;
-                point.z = z;
+                point.x = buffer[0];
+                point.y = buffer[1];
+                point.z = buffer[2];
                 cloud->push_back(point);
             }
             file.close();
+        }
+
+        // 新增:点云检查与日志
+        if (!cloud->empty()) {
+            size_t n = cloud->size();
+            double xmin = 1e9, xmax = -1e9, ymin = 1e9, ymax = -1e9, zmin = 1e9, zmax = -1e9;
+            for (size_t pi = 0; pi < n; ++pi) {
+                double x = (*cloud)[pi].x, y = (*cloud)[pi].y, z = (*cloud)[pi].z;
+                if (x < xmin) xmin = x; if (x > xmax) xmax = x;
+                if (y < ymin) ymin = y; if (y > ymax) ymax = y;
+                if (z < zmin) zmin = z; if (z > zmax) zmax = z;
+            }
+            std::cout << "[KITTI-DECODE-CHECK] frame " << i << ", num_points: " << n
+                << ", x:[" << xmin << ", " << xmax << "] y:[" << ymin << ", " << ymax << "] z:[" << zmin << ", " << zmax << "]" << std::endl;
+            // 打印前三个点坐标
+            size_t to_print = std::min<size_t>(n, 3);
+            for (size_t pi = 0; pi < to_print; ++pi) {
+                std::cout << "  pt" << pi << ": (" << (*cloud)[pi].x << ", " << (*cloud)[pi].y << ", " << (*cloud)[pi].z << ")" << std::endl;
+            }
         }
 
         if (cloud->empty()) {
@@ -185,8 +229,8 @@ bool LidarOdometry::processKITTISequence(const std::string& data_path, int seque
             continue;
         }
 
-        // 每100帧输出一次进度
-        if (i % 100 == 0) {
+        // 输出进度
+        if (i % 5 == 0) {
             std::cout << "Processed " << i << "/" << cloud_files.size() << " frames" << std::endl;
         }
     }
@@ -274,7 +318,7 @@ void LidarOdometry::visualizeTrajectory(bool show_clouds) {
         trajectory_cloud.push_back(p);
     }
 
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> trajectory_color(&trajectory_cloud, 255, 0, 0);
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> trajectory_color(trajectory_cloud.makeShared(), 255, 0, 0);
     viewer->addPointCloud<pcl::PointXYZ>(trajectory_cloud.makeShared(), trajectory_color, "trajectory");
     viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "trajectory");
 
@@ -305,7 +349,7 @@ void LidarOdometry::getStatistics(int& total_frames, int& successful_frames, dou
     average_time = total_frames_ > 0 ? total_processing_time_ / total_frames_ : 0.0;
 }
 
-PointCloudPtr LidarOdometry::preprocessPointCloud(const PointCloudPtr& cloud) {
+LidarOdometry::PointCloudPtr LidarOdometry::preprocessPointCloud(const LidarOdometry::PointCloudPtr& cloud) {
     // 距离滤波
     PointCloudPtr range_filtered = rangeFilter(cloud);
     
@@ -315,7 +359,7 @@ PointCloudPtr LidarOdometry::preprocessPointCloud(const PointCloudPtr& cloud) {
     return voxel_filtered;
 }
 
-PointCloudPtr LidarOdometry::rangeFilter(const PointCloudPtr& cloud) {
+LidarOdometry::PointCloudPtr LidarOdometry::rangeFilter(const LidarOdometry::PointCloudPtr& cloud) {
     PointCloudPtr filtered_cloud(new PointCloud);
     
     for (const auto& point : cloud->points) {
@@ -328,7 +372,7 @@ PointCloudPtr LidarOdometry::rangeFilter(const PointCloudPtr& cloud) {
     return filtered_cloud;
 }
 
-PointCloudPtr LidarOdometry::voxelFilter(const PointCloudPtr& cloud) {
+LidarOdometry::PointCloudPtr LidarOdometry::voxelFilter(const LidarOdometry::PointCloudPtr& cloud) {
     PointCloudPtr filtered_cloud(new PointCloud);
     
     pcl::VoxelGrid<pcl::PointXYZ> voxel_filter;
@@ -347,10 +391,39 @@ void LidarOdometry::extractPose(const Eigen::Matrix4d& transformation,
     orientation = Eigen::Quaterniond(rotation_matrix);
 }
 
+bool LidarOdometry::saveCurrentRegistrationScreenshot(const std::string& filename) {
+    if (!is_initialized_ || !previous_cloud_ || !last_processed_cloud_ || 
+        previous_cloud_->empty() || last_processed_cloud_->empty()) {
+        std::cerr << "Error: Cannot save registration screenshot - missing point clouds!" << std::endl;
+        return false;
+    }
+
+    // 调用对应配准方法的保存截图函数
+    if (registration_method_ == RegistrationMethod::NDT && ndt_registration_) {
+        ndt_registration_->saveRegistrationScreenshot(
+            last_processed_cloud_, previous_cloud_, last_relative_transform_, filename);
+        return true;
+    } else if (registration_method_ == RegistrationMethod::ICP && icp_registration_) {
+        icp_registration_->saveRegistrationScreenshot(
+            last_processed_cloud_, previous_cloud_, last_relative_transform_, filename);
+        return true;
+    } else if (registration_method_ == RegistrationMethod::GN_ICP && gn_icp_registration_) {
+        gn_icp_registration_->saveRegistrationScreenshot(
+            last_processed_cloud_, previous_cloud_, last_relative_transform_, filename);
+        return true;
+    }
+
+    std::cerr << "Error: No valid registration method for screenshot!" << std::endl;
+    return false;
+}
+
 void LidarOdometry::initializeRegistration() {
     if (registration_method_ == RegistrationMethod::NDT) {
         ndt_registration_ = std::make_unique<NDTRegistration>(1.0, 0.1, 35, 0.01, 0.01);
         ndt_registration_->setVoxelGridFilter(voxel_size_);
+    } else if (registration_method_ == RegistrationMethod::ICP) {
+        icp_registration_ = std::make_unique<ICPRegistration>(50, 1.0, 1e-6, 1e-6);
+        icp_registration_->setVoxelGridFilter(voxel_size_);
     } else if (registration_method_ == RegistrationMethod::GN_ICP) {
         gn_icp_registration_ = std::make_unique<GNICPRegistration>(50, 0.5, 1e-6, 1e-6, true, true);
         gn_icp_registration_->setVoxelGridFilter(voxel_size_);

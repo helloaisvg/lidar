@@ -155,6 +155,7 @@ void saveMapScreenshot(LidarOdometry& odometry, const std::string& screenshot_fi
     auto trajectory = odometry.getTrajectory();
     
     if (!global_map || global_map->empty()) {
+        // 若地图为空，尝试先保存一次（可能还未累计），直接返回
         std::cerr << "错误: 全局地图为空，无法截图" << std::endl;
         return;
     }
@@ -214,9 +215,9 @@ int main(int argc, char** argv) {
     std::cout << "=== 增强版KITTI里程计处理 ===" << std::endl;
     
     // 默认路径
-    std::string kitti_path = "/home/sss/mapping/kitti_data/data_odometry_velodyne/dataset";
+    std::string kitti_path = "/home/sss/lidar/lidar/data_odometry_velodyne/dataset";
     int sequence = 0;
-    std::string method = "ndt"; // ndt 或 gn_icp
+    std::string method = "ndt"; // ndt, icp, 或 gn_icp
     
     if (argc > 1) {
         kitti_path = argv[1];
@@ -250,10 +251,12 @@ int main(int argc, char** argv) {
     
     // 创建里程计
     LidarOdometry::RegistrationMethod reg_method;
-    if (method == "ndt") {
-        reg_method = LidarOdometry::RegistrationMethod::NDT;
-    } else {
+    if (method == "icp") {
+        reg_method = LidarOdometry::RegistrationMethod::ICP;
+    } else if (method == "gn_icp") {
         reg_method = LidarOdometry::RegistrationMethod::GN_ICP;
+    } else {
+        reg_method = LidarOdometry::RegistrationMethod::NDT;
     }
     
     LidarOdometry odometry(reg_method, 0.1, 100.0, 1.0);
@@ -276,8 +279,8 @@ int main(int argc, char** argv) {
         return -1;
     }
     
-    // 处理更多帧以获得更好的结果
-    int max_frames = std::min(100, (int)bin_files.size()); // 处理前100帧
+    // 处理前10帧（可根据需要调整）
+    int max_frames = std::min(10, (int)bin_files.size());
     std::cout << "处理前 " << max_frames << " 帧..." << std::endl;
     
     for (int i = 0; i < max_frames; i++) {
@@ -294,8 +297,18 @@ int main(int argc, char** argv) {
         
         // 处理点云
         double timestamp = i * 0.1; // 假设10Hz
+        
         if (odometry.processFrame(cloud, timestamp)) {
-            // 成功处理
+            // 成功处理，保存单帧配准截图（仅前3帧，避免生成太多文件）
+            if (i > 0 && i <= 3) {
+                std::string screenshot_dir = "registration_screenshots/";
+                std::filesystem::create_directories(screenshot_dir);
+                std::string registration_screenshot = screenshot_dir + method + "_registration_frame_" + 
+                                                     std::to_string(i-1) + "_to_" + std::to_string(i) + ".png";
+                
+                // 保存配准截图（通过里程计的内部方法）
+                odometry.saveCurrentRegistrationScreenshot(registration_screenshot);
+            }
         } else {
             std::cerr << "处理失败: 帧 " << i << std::endl;
         }

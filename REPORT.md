@@ -74,7 +74,7 @@
 - Bag 处理：
   - 读取 `data.bag` → 解析 `sensor_msgs/PointCloud2` → 抽取 x/y/z → 统计/轨迹生成（当前为质心轨迹，便于可视化）→ 输出 TUM 与评估图片。
 
-### 3.3 关键类/函数（示意）
+### 3.3 关键类/函数
 - Registration 接口：`bool align(PointCloud src, PointCloud tgt, Pose& delta)`
   - NDT：构建体素-高斯模型，使用内部优化器迭代求解；
    - ICP：对应搜索（KD-Tree）→ 计算对应关系 → 求解最优变换矩阵 → 迭代直到收敛；
@@ -96,7 +96,7 @@
   - 初值（常速/零增量/IMU）；
   - 帧间配准 → 位姿累计 → 关键帧插入策略（距离/角度阈值）→ 局部地图维护（下采样、移窗）→ 导出。
 
-### 3.5 参数与配置（示例）
+### 3.5 参数与配置
 - 预处理：体素下采样 voxel=0.1–0.2 m；半径裁剪 1–100 m；min_points 1000。
 - NDT：分辨率 1.0 m；最大迭代 35；epsilon 1e-4；step_size 0.1。
 - ICP：最大对应距离 1.0 m；最大迭代 50；变换收敛阈值 1e-6；适应度阈值 1e-6。
@@ -104,7 +104,7 @@
 - 关键帧：平移阈值 1–3 m；旋转阈值 5–10°；地图下采样 0.2–0.5 m。
 
 
-## 4. 程序效果展示（含复现实验命令与文字说明）
+## 4. 程序效果展示
 
 ### 4.1 KITTI 前端里程计
 - 运行入口（示例）：
@@ -146,7 +146,7 @@ evo_traj tum ndt_kitti_0_trajectory.txt icp_kitti_0_trajectory.txt gn_icp_kitti_
 ```
 - 产出：`evo_evaluation_results/ndt/`、`evo_evaluation_results/icp/`、`evo_evaluation_results/gn_icp/` 下的评估图与统计文本（ATE/RPE、轨迹叠加等）。
 
-文字说明：有真值时可量化评估误差。NDT 通常在转弯与结构变换处更稳健；ICP 收敛速度快但需要良好初值；GN-ICP 在直行/特征丰富场景中可能具更高精度。
+
 
 ### 4.3 Bag 包（无真值，可视化）
 - 数据与规模（已验证）：
@@ -163,11 +163,9 @@ bash scripts/evaluate_with_evo.sh
 ```
 - 可视化产出：`evo_evaluation_results/trajectory_plot_trajectories.png`、`trajectory_plot_xyz.png`、`trajectory_plot_rpy.png`、`trajectory_plot_speeds.png`
 
-文字说明：无真值条件下不进行误差统计，改以轨迹、姿态、速度曲线的连续性、平滑性与物理合理性进行定性核查。
 
 ### 4.4 性能与资源
 - 环境：CMake 3.16+，PCL 1.8+，Eigen 3.3+，OpenCV 4.0+，Python 3.8+，ROS2；可选 EVO。
-- 硬件（示例）：8 核 CPU / 32GB 内存；常规分辨率参数下可实时或近实时运行。
 - 运行时长（参考，前10帧处理）：
   - NDT：平均处理时间 ~35秒/帧（包含预处理和配准）
   - ICP：平均处理时间 ~2秒/帧（PCL标准实现，较快）

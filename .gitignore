@@ -32,11 +32,11 @@ ENV/
 *.log
 *.tmp
 
-# KITTI数据压缩包（太大，不提交）
+# KITTI数据压缩包
 data_odometry_velodyne.zip
 *.bag
 
-# 已解压的KITTI数据集目录（太大，不提交，但保留结构）
+# 已解压的KITTI数据集目录
 data_odometry_velodyne/dataset/
 
 # CMake构建文件
@@ -54,7 +54,7 @@ Makefile
 *.dylib
 *.dll
 
-# 保留根目录下的所有结果文件（使用否定模式确保不被忽略）
+# 保留根目录下的所有结果文件
 # 轨迹文件（在根目录）
 !/*_kitti_*_trajectory.txt
 !/*_kitti_*_trajectory.tum

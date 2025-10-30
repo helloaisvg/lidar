@@ -112,6 +112,18 @@ public:
                               const PointCloudPtr& target,
                               const Eigen::Matrix4f& transformation);
 
+    /**
+     * @brief 保存配准结果截图
+     * @param source 源点云
+     * @param target 目标点云
+     * @param transformation 变换矩阵
+     * @param filename 保存的文件名
+     */
+    void saveRegistrationScreenshot(const PointCloudPtr& source,
+                                   const PointCloudPtr& target,
+                                   const Eigen::Matrix4f& transformation,
+                                   const std::string& filename);
+
 private:
     NDPtr ndt_;                    // NDT配准器
     pcl::VoxelGrid<pcl::PointXYZ> voxel_filter_;  // 体素网格滤波器

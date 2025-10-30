@@ -1,0 +1,15 @@
+,gn_icp_kitti_0_trajectory.txt
+nr. of poses,9.0
+path length (m),5.972107032356879
+duration (s),0.8
+t_start (s),0.0
+t_end (s),0.8
+v_max (m/s),7.838176903100609
+v_min (m/s),6.829197583911307
+v_avg (m/s),7.465133790446098
+v_max (km/h),28.217436851162194
+v_min (km/h),24.585111302080705
+v_avg (km/h),26.874481645605954
+dt_max (s),0.10000000000000009
+dt_min (s),0.09999999999999998
+dt_avg (s),0.1
