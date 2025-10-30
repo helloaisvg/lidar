@@ -3,18 +3,24 @@
 
 echo "=== 使用EVO评估激光雷达里程计轨迹 ==="
 
-# 安装EVO
-if ! command -v evo_ape &> /dev/null; then
-    echo "正在安装EVO..."
-    pip3 install evo --upgrade --no-binary determined-system
+# 检查EVO是否可用（优先使用虚拟环境，然后用户安装）
+export PATH="$HOME/.local/bin:$PATH"
+if [ -f "evo_env/bin/activate" ]; then
+    source evo_env/bin/activate
 fi
 
-# 检查轨迹文件
-TRAJECTORY_FILE="direct_processing_results/estimated_trajectory.txt"
-
-if [ ! -f "$TRAJECTORY_FILE" ]; then
-    echo "错误: 找不到轨迹文件 $TRAJECTORY_FILE"
-    echo "请先运行: python3 scripts/direct_bag_processor.py ./data.bag"
+# 检查轨迹文件（优先使用bag处理结果）
+TRAJECTORY_FILE=""
+if [ -f "bag_processing_results/estimated_trajectory.txt" ]; then
+    TRAJECTORY_FILE="bag_processing_results/estimated_trajectory.txt"
+elif [ -f "results/trajectories/ndt_trajectory_0.txt" ]; then
+    TRAJECTORY_FILE="results/trajectories/ndt_trajectory_0.txt"
+else
+    echo "错误: 找不到轨迹文件"
+    echo "请先运行:"
+    echo "  1. python3 scripts/direct_bag_processor.py ./data.bag"
+    echo "  或"
+    echo "  2. 运行KITTI里程计生成轨迹文件"
     exit 1
 fi
 
@@ -27,7 +33,7 @@ mkdir -p $EVAL_DIR
 # 1. 可视化轨迹
 echo ""
 echo "1. 可视化轨迹..."
-evo_traj tum $TRAJECTORY_FILE --plot --save_plot $EVAL_DIR/trajectory_plot.png
+yes | evo_traj tum $TRAJECTORY_FILE --plot --save_plot $EVAL_DIR/trajectory_plot.png
 
 # 2. 如果有真值，进行APE评估
 if [ -f "groundtruth.txt" ]; then

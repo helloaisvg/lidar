@@ -1,0 +1,73 @@
+# 构建目录
+build/
+install/
+log/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+*.egg
+
+# 虚拟环境
+.evoenv/
+evo_env/
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# 日志和临时文件
+*.log
+*.tmp
+
+# KITTI数据压缩包（太大，不提交）
+data_odometry_velodyne.zip
+*.bag
+
+# 已解压的KITTI数据集目录（太大，不提交，但保留结构）
+data_odometry_velodyne/dataset/
+
+# CMake构建文件
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# 编译产物
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+
+# 保留根目录下的所有结果文件（使用否定模式确保不被忽略）
+# 轨迹文件（在根目录）
+!/*_kitti_*_trajectory.txt
+!/*_kitti_*_trajectory.tum
+!/*_trajectory_*.txt
+
+# 点云地图（在根目录）
+!/*_kitti_*_global_map.pcd
+
+# 截图（在根目录）
+!/*_kitti_*_global_map_screenshot.png
+
+# 视频（在根目录）
+!/*_kitti_*_odometry_video.mp4
+
+# ROS节点输出（在根目录）
+!/ros_odometry_trajectory.txt
